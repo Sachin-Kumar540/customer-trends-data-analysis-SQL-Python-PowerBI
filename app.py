@@ -17,13 +17,31 @@ st.markdown("""
 def load_and_clean_data():
     df = pd.read_csv('customer_shopping_behavior (1).csv') 
     
-    # Your exact cleaning logic
+    # Imputing missing values
     df['Review Rating'] = df.groupby('Category')['Review Rating'].transform(lambda x: x.fillna(x.median()))
+    
+    # Renaming columns
     df.columns = df.columns.str.lower().str.replace(' ', '_')
     df = df.rename(columns={'purchase_amount_(usd)': 'purchase_amount'})
     
+    # Feature Extraction: Age Group
     labels = ['Young Adult', 'Adult', 'Middle-aged', 'Senior']
     df['age_group'] = pd.qcut(df['age'], q=4, labels=labels)
+    
+    # Feature Extraction: Purchase Frequency mapping
+    frequency_mapping = {
+        'Fortnightly': 14,
+        'Weekly': 7,
+        'Monthly': 30,
+        'Quarterly': 90,
+        'Bi-Weekly': 14,
+        'Annually': 365,
+        'Every 3 Months': 90
+    }
+    df['purchase_frequency_days'] = df['frequency_of_purchases'].map(frequency_mapping)
+    
+    # Drop redundant column
+    df = df.drop('promo_code_used', axis=1)
     
     return df
 
@@ -82,3 +100,20 @@ with row2_col2:
     rev_loc = df.groupby('location')['purchase_amount'].sum().nlargest(5).reset_index()
     fig_loc = px.bar(rev_loc, x='purchase_amount', y='location', orientation='h', color_discrete_sequence=['#FF9671'])
     st.plotly_chart(fig_loc, use_container_width=True)
+
+st.divider()
+
+# --- BEHIND THE SCENES: DATA PROCESSING ---
+st.markdown("## Technical Data Processing")
+st.markdown("This section details the data cleaning and feature engineering executed via Python (Pandas) prior to visualization.")
+
+st.markdown("### 1. Dataset Overview (Post-Cleaning)")
+st.write("Summary Statistics:")
+st.dataframe(df.describe(include='all'))
+
+st.markdown("### 2. Cleaned Data Sample")
+st.dataframe(df.head(10))
+
+st.markdown("### 3. Engineered Features")
+st.write("Mapping Categorical Age and Purchase Frequency into actionable analytical groups:")
+st.dataframe(df[['age', 'age_group', 'frequency_of_purchases', 'purchase_frequency_days']].head(10))
